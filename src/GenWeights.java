@@ -1,4 +1,7 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.IOException;
 
 import myfileio.MyFileIO;
 
@@ -47,7 +50,9 @@ public class GenWeights {
 	 * Initializes all elements of the weights array to 0
 	 */
 	void initWeights() {
-		// TODO #1
+		for (int i = 0; i < weights.length; i++) {
+			weights[i] = 0;
+		}
 	}
 
 	/**
@@ -83,10 +88,47 @@ public class GenWeights {
 	 * @param infName - the name of the text file to read
 	 */
 	void generateWeights(String infName) {
-		// TODO #2: write this method and any helper methods
-		System.out.println("generateWeights has not been implemented yet!");
+		File inf = new File(infName);
+		int status = fio.checkFileStatus(inf, true);
+		if (status != MyFileIO.FILE_OK) {
+			if (inputErrors(status))
+				return;
+		}
+		initWeights();
+		BufferedReader br = fio.openBufferedReader(inf);
+		int c;
+		try {
+			while ((c = br.read()) != -1) {
+				weights[c]++;
+			}
+			fio.closeFile(br);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		weights[0]++;
+		printWeights();
 		return;
-
+	}
+	
+	boolean inputErrors(int status) {
+		switch (status) {
+		case MyFileIO.EMPTY_NAME:
+			hca.issueAlert(HuffAlerts.INPUT, "Input Error", "Empty file name");
+			return true;
+		case MyFileIO.FILE_DOES_NOT_EXIST:
+			hca.issueAlert(HuffAlerts.INPUT, "Input Error", "File does not exist");
+			return true;
+		case MyFileIO.NOT_A_FILE:
+			hca.issueAlert(HuffAlerts.INPUT, "Input Error", "Not a file");
+			return true;
+		case MyFileIO.READ_ZERO_LENGTH:
+			hca.issueAlert(HuffAlerts.INPUT, "Input Error", "Zero length");
+			return true;
+		case MyFileIO.NO_READ_ACCESS:
+			hca.issueAlert(HuffAlerts.INPUT, "Input Error", "Not readable");
+			return true;
+		}
+		return false;
 	}
 	
 	/**
@@ -139,8 +181,54 @@ public class GenWeights {
 	 * @param outfName the name of the weights file (includes weights/ )
 	 */
 	 void saveWeightsToFile(String outfName) {
-		// TODO #3: write this method (and any helper methods)
+		if (outfName.length() == 0) {
+			hca.issueAlert(HuffAlerts.OUTPUT, "Output Error", "Empty file name");
+			return;
+		}
+		File outf = new File(outfName);
+		int status = fio.checkFileStatus(outf, false);
+		if (status != MyFileIO.FILE_OK) {
+			if (outputErrors(status))
+				return;
+		} else {
+			if (!fio.createEmptyFile(outfName)) {
+				hca.issueAlert(HuffAlerts.OUTPUT, "Output Error", "Could not create file");
+				return;
+			}
+		}
+		BufferedWriter bw = fio.openBufferedWriter(outf);
+		try {
+			for (int i = 0; i < weights.length; i++) {
+					bw.write(i + "," + weights[i] + ",\n");
+			}
+			fio.closeFile(bw);
+			hca.issueAlert(HuffAlerts.DONE, "Information", "File created successfully");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		return;
+	}
+	
+	 /**
+		 * 
+		 *
+		 * @param infName the name of the text file to read
+		 * @return the weights array
+		 */
+	boolean outputErrors(int status) {
+		switch (status) {
+		case MyFileIO.NO_WRITE_ACCESS:
+			hca.issueAlert(HuffAlerts.OUTPUT, "Output Error", "Cannot Write");
+			return true;
+		case MyFileIO.WRITE_EXISTS:
+			if (hca.issueAlert(HuffAlerts.CONFIRM, "Confirm", "OK or Cancel"))
+				return false;
+			return true;
+		case MyFileIO.NOT_A_FILE:
+			hca.issueAlert(HuffAlerts.OUTPUT, "Output Error", "Not a file");
+			return true;
+		}
+		return false;
 	}
 
 	
