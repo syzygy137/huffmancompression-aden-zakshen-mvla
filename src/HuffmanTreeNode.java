@@ -150,8 +150,15 @@ public class HuffmanTreeNode {
 	public static Comparator<HuffmanTreeNode> compareWeightOrd = new Comparator<HuffmanTreeNode>() {
 		@Override
 		public int compare(HuffmanTreeNode ht1, HuffmanTreeNode ht2) {
-			// TODO: write this method
-			return -1; // remove when this method is written
+			if (ht1.getWeight() == ht2.getWeight()) {
+				if (ht1.getOrdValue() == ht2.getOrdValue()) {
+					return ht1.getId() - ht2.getId();
+				} else {
+					return ht1.getOrdValue() - ht2.getOrdValue();
+				}
+			}  else {
+				return ht1.getWeight() - ht2.getWeight();
+			}
 		}
 	};
 	
