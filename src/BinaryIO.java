@@ -21,8 +21,15 @@ public class BinaryIO {
 	 * @return the int generated from the binary string
 	 */
 	int convStrToBin(String binStr) {
-		// TODO: Write this method
-		return -1;
+		int aByte = 0;
+		for (int i = 0; i < binStr.length(); i++) {
+			aByte = aByte << 1;
+			if (binStr.charAt(i) == '1') {
+				aByte++;
+			}			
+		}
+		return aByte;
+		
 	}
 	
 	/**
@@ -33,7 +40,10 @@ public class BinaryIO {
 	 */
 	String convBinToStr(int aByte) {
 		String str = "";
-		// TODO: Write this method
+		while (str.length() < 8) {
+			str = (aByte % 2 == 0) ? "0" + str : "1" + str;
+			aByte = aByte >> 1;
+		}
 		return str;
 	}
 	
@@ -60,8 +70,15 @@ public class BinaryIO {
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
 	 String writeBinString(BufferedOutputStream bos, String binStr) throws IOException {
-		// TODO: write this method
-		 return null;
+		 int aByte;
+		 String byteStr;
+		while (binStr.length() >= 8) {
+			byteStr = binStr.substring(0, 8);
+			aByte = convStrToBin(byteStr);
+			bos.write(aByte);
+			binStr = binStr.substring(8, binStr.length());
+		}
+		 return binStr;
 	 }
 	
 }
