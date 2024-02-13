@@ -66,14 +66,21 @@ public class EncodeDecode {
 	 * @param optimize 	if true, ONLY add leaf nodes with non-zero weights to the priority queue
 	 */
 	void encode(String fName, String bfName, String freqWts, boolean optimize) {
-		File file = new File("fname");
-		int status = fio.checkFileStatus(file, true);
+		File f = fio.getFileHandle(fName);
+		fio.createEmptyFile(bfName);
+		File bf = fio.getFileHandle(bfName);
+		File fw = fio.getFileHandle(freqWts);
+		int status = fio.checkFileStatus(f, true);
+		if (status != MyFileIO.FILE_OK) {
+			hca.issueAlert(HuffAlerts.INPUT, "Input Error", "Could not read file");
+		}
+		
 		gw.generateWeights(fName);
 		gw.saveWeightsToFile(freqWts);
 		huffUtil.setWeights(huffUtil.readFreqWeights(fio.getFileHandle(freqWts)));
 		huffUtil.buildHuffmanTree(optimize);
 		huffUtil.createHuffmanCodes(huffUtil.getTreeRoot(), "", 0);
-		executeEncode(fio.getFileHandle(fName), fio.getFileHandle(bfName));
+		executeEncode(f, bf);
 	}
 	
 	/**
