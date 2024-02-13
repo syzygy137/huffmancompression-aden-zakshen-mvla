@@ -1,3 +1,5 @@
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 
@@ -63,8 +65,15 @@ public class EncodeDecode {
 	 *                  generate the frequency weights from fName.
 	 * @param optimize 	if true, ONLY add leaf nodes with non-zero weights to the priority queue
 	 */
-	void encode(String fName,String bfName, String freqWts, boolean optimize) {
-		// TODO: write this method and any required helper methods
+	void encode(String fName, String bfName, String freqWts, boolean optimize) {
+		File file = new File("fname");
+		int status = fio.checkFileStatus(file, true);
+		gw.generateWeights(fName);
+		gw.saveWeightsToFile(freqWts);
+		huffUtil.setWeights(huffUtil.readFreqWeights(fio.getFileHandle(freqWts)));
+		huffUtil.buildHuffmanTree(optimize);
+		huffUtil.createHuffmanCodes(huffUtil.getTreeRoot(), "", 0);
+		executeEncode(fio.getFileHandle(fName), fio.getFileHandle(bfName));
 	}
 	
 	/**
@@ -86,6 +95,27 @@ public class EncodeDecode {
 	 */
 	private void executeEncode(File inFile, File binFile) {
 		// TODO: write this method and any required helper methods
+		encodeMap = huffUtil.getEncodeMap();
+		String binStr = "";
+		BufferedReader br = fio.openBufferedReader(inFile);
+		BufferedOutputStream bo = fio.openBufferedOutputStream(binFile);
+		
+		int c;
+		try {
+			while ((c = br.read()) != -1) {
+				binStr += encodeMap[c];
+				if (binStr.length() >= 8) {
+					binStr = binUtil.writeBinString(bo, binStr);
+				}
+			}
+			binUtil.writeBinString(bo, binStr + encodeMap[0] + "0000000");
+			fio.closeStream(bo);
+			fio.closeFile(br);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		
 	}
 	
 	// DO NOT CODE THIS METHOD UNTIL EXPLICITLY INSTRUCTED TO DO SO!!!
