@@ -66,21 +66,52 @@ public class EncodeDecode {
 	 * @param optimize 	if true, ONLY add leaf nodes with non-zero weights to the priority queue
 	 */
 	void encode(String fName, String bfName, String freqWts, boolean optimize) {
+		
 		File f = fio.getFileHandle(fName);
-		fio.createEmptyFile(bfName);
 		File bf = fio.getFileHandle(bfName);
 		File fw = fio.getFileHandle(freqWts);
-		int status = fio.checkFileStatus(f, true);
-		if (status != MyFileIO.FILE_OK) {
-			hca.issueAlert(HuffAlerts.INPUT, "Input Error", "Could not read file");
+		if (errorCheck(fName, bfName, freqWts)) {
+			return;
 		}
 		
-		gw.generateWeights(fName);
-		gw.saveWeightsToFile(freqWts);
-		huffUtil.setWeights(huffUtil.readFreqWeights(fio.getFileHandle(freqWts)));
+		huffUtil.setWeights(huffUtil.readFreqWeights(fw));
 		huffUtil.buildHuffmanTree(optimize);
 		huffUtil.createHuffmanCodes(huffUtil.getTreeRoot(), "", 0);
 		executeEncode(f, bf);
+	}
+	/**
+	 * checks 4 errors
+	*/
+	boolean errorCheck(String in, String out, String weights) {
+		File f = fio.getFileHandle(in);
+		File bf = fio.getFileHandle(out);
+		File fw = fio.getFileHandle(weights);
+		if (fio.checkFileStatus(f, true) != MyFileIO.FILE_OK) {
+			hca.issueAlert(HuffAlerts.INPUT, "Input Error", "Could not read input file");
+			return true;
+		}
+		if (fio.checkFileStatus(bf, false) != MyFileIO.FILE_OK) {
+			if (fio.checkFileStatus(bf, false) == MyFileIO.WRITE_EXISTS) {
+				if (!hca.issueAlert(HuffAlerts.CONFIRM, "Confirmation", "Write in the file?"))
+					return true;
+			} else {
+				hca.issueAlert(HuffAlerts.OUTPUT, "Output Error", "Could not create binary file");
+				return true;
+			}
+		}
+		fio.createEmptyFile(out);
+		if (fio.checkFileStatus(fw, true) != MyFileIO.FILE_OK) {
+			if (fio.checkFileStatus(fw, true) == MyFileIO.READ_ZERO_LENGTH) {
+				gw.generateWeights(in);
+				gw.saveWeightsToFile(weights);
+				hca.issueAlert(HuffAlerts.INPUT, "Input Error", "Weights needed to be created");
+			} else {
+				hca.issueAlert(HuffAlerts.INPUT, "Input Error", "Could not read weights");
+				return true;
+			}
+			
+		}
+		return false;
 	}
 	
 	/**
