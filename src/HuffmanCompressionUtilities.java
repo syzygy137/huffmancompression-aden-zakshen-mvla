@@ -325,8 +325,16 @@ public class HuffmanCompressionUtilities {
 	 * @return the ordinal value of the decoded character
 	 */
 	private int traverseTree(HuffmanTreeNode root, String binStr, int index) {
-		//TODO - write this method
-		return -1; // remove when completed.
+		if (root.isLeaf())
+			return root.getOrdValue();
+		if (index == binStr.length()) {
+			return -1;
+		}
+		if (binStr.charAt(index) == '0') {
+			return traverseTree(root.getLeft(), binStr, index + 1);
+		} else {
+			return traverseTree(root.getRight(), binStr, index + 1);
+		}
 	}
 	
 	/**
@@ -341,7 +349,10 @@ public class HuffmanCompressionUtilities {
 	 */
 	int decodeString(String binStr) {
 		//TODO - write this method
-		return -1; // remove when completed.
+		if (binStr.length() == 0) {
+			return -1;
+		}
+		return traverseTree(root, binStr, 0);
 	}
 		
 

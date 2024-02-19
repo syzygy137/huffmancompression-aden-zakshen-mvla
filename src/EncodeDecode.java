@@ -1,5 +1,7 @@
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 
@@ -70,7 +72,7 @@ public class EncodeDecode {
 		File f = fio.getFileHandle(fName);
 		File bf = fio.getFileHandle(bfName);
 		File fw = fio.getFileHandle(freqWts);
-		if (errorCheck(fName, bfName, freqWts)) {
+		if (errorCheck(fName, bfName, freqWts, false)) {
 			return;
 		}
 		
@@ -82,10 +84,34 @@ public class EncodeDecode {
 	/**
 	 * checks 4 errors
 	*/
-	boolean errorCheck(String in, String out, String weights) {
+	boolean errorCheck(String in, String out, String weights, boolean decode) {
 		File f = fio.getFileHandle(in);
 		File bf = fio.getFileHandle(out);
 		File fw = fio.getFileHandle(weights);
+		if (universalErrors(f, bf))
+			return true;
+		if (!decode)
+			fio.createEmptyFile(out);
+		if (fio.checkFileStatus(fw, true) != MyFileIO.FILE_OK) {
+			if (fio.checkFileStatus(fw, true) == MyFileIO.READ_ZERO_LENGTH && !decode) {
+				gw.generateWeights(in);
+				gw.saveWeightsToFile(weights);
+				hca.issueAlert(HuffAlerts.INPUT, "Input Error", "Weights needed to be created");
+			} else {
+				hca.issueAlert(HuffAlerts.INPUT, "Input Error", "Could not read weights");
+				return true;
+			}
+			
+		}
+		if (decode)
+			fio.createEmptyFile(out);
+		return false;
+	}
+	
+	/**
+	 * checks universal errors
+	*/
+	boolean universalErrors(File f, File bf) {
 		if (fio.checkFileStatus(f, true) != MyFileIO.FILE_OK) {
 			hca.issueAlert(HuffAlerts.INPUT, "Input Error", "Could not read input file");
 			return true;
@@ -98,18 +124,6 @@ public class EncodeDecode {
 				hca.issueAlert(HuffAlerts.OUTPUT, "Output Error", "Could not create binary file");
 				return true;
 			}
-		}
-		fio.createEmptyFile(out);
-		if (fio.checkFileStatus(fw, true) != MyFileIO.FILE_OK) {
-			if (fio.checkFileStatus(fw, true) == MyFileIO.READ_ZERO_LENGTH) {
-				gw.generateWeights(in);
-				gw.saveWeightsToFile(weights);
-				hca.issueAlert(HuffAlerts.INPUT, "Input Error", "Weights needed to be created");
-			} else {
-				hca.issueAlert(HuffAlerts.INPUT, "Input Error", "Could not read weights");
-				return true;
-			}
-			
 		}
 		return false;
 	}
@@ -175,7 +189,22 @@ public class EncodeDecode {
 	 * @param freqWts the freq wts
 	 * @param optimize - exclude 0-weight nodes from the tree
 	 */
-	void decode(String bfName, String ofName, String freqWts,boolean optimize) {
+	void decode(String bfName, String ofName, String freqWts, boolean optimize) {
+		File fw = fio.getFileHandle(freqWts);
+		File bf = fio.getFileHandle(bfName);
+		File of = fio.getFileHandle(ofName);
+		if (errorCheck(bfName, ofName, freqWts, true)) {
+			return;
+		}
+		huffUtil.setWeights(huffUtil.readFreqWeights(fw));
+		huffUtil.buildHuffmanTree(optimize);
+		huffUtil.createHuffmanCodes(huffUtil.getTreeRoot(), "", 0);
+		try {
+			executeDecode(bf, of);
+			hca.issueAlert(HuffAlerts.DONE, "Done", "Decode successful");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	// DO NOT CODE THIS METHOD UNTIL EXPLICITLY INSTRUCTED TO DO SO!!!
@@ -197,6 +226,21 @@ public class EncodeDecode {
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
 	private void executeDecode(File binFile, File outFile) throws IOException {
+		encodeMap = huffUtil.getEncodeMap();
+		String binStr = "";
+		BufferedInputStream bis = fio.openBufferedInputStream(binFile);
+		BufferedWriter bw = fio.openBufferedWriter(outFile);
+		int c;
+		int decoded;
+		while ((c = bis.read()) != -1) {
+			binStr += binUtil.convBinToStr(c);
+			while ((decoded = huffUtil.decodeString(binStr)) > 0) {
+				bw.write(decoded);
+				binStr = binStr.substring(encodeMap[decoded].length());
+			}
+		}
+		fio.closeStream(bis);
+		fio.closeFile(bw);
 	}
 
 }
